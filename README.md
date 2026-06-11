@@ -1,4 +1,7 @@
-# 🚗 AutoCenter Rota 381
+# 📋 README — Diário da IA
+## Sistema de Gestão Auto Center Rota 381
+**Disciplina:** Desenvolvimento de Programas Estruturados e Modularização  
+**Professor:** Raffael Carvalho  
 
 **Autores:**
 - Alice Alberti Silva
@@ -8,159 +11,81 @@
 
 ---
 
-Sistema de gerenciamento para oficina mecânica desenvolvido em Java, com persistência de dados em arquivos CSV.
+## 1. Quais ferramentas, métodos ou bibliotecas proibidas a IA tentou incluir no código nas primeiras tentativas?
+
+Nas primeiras interações com a IA (Claude), foram identificadas as seguintes tentativas de uso de estruturas **não permitidas pela disciplina**:
+
+- **`ArrayList` e `List<T>`**: A IA tentou utilizar coleções dinâmicas da biblioteca `java.util.*` para armazenar mecânicos, veículos e peças, ao invés de vetores de tamanho fixo.
+- **Métodos dentro das classes de dados**: A IA sugeriu adicionar métodos como `toString()` e construtores parametrizados dentro das classes `Mecanico`, `Veiculo`, `Peca` e `OrdemServico`, o que caracteriza uso de Orientação a Objetos não permitido.
+- **`HashMap`**: Para a busca de peças e mecânicos por código, a IA tentou usar `HashMap<Integer, Peca>` para facilitar a localização por chave, estrutura também proibida.
+- **`java.time.LocalDateTime`**: Para registrar a data e hora das Ordens de Serviço, a IA sugeriu o uso dessa biblioteca sem que o grupo tivesse solicitado.
+
+O grupo identificou todas essas ocorrências, recusou o código gerado e solicitou a refatoração para o padrão exigido pela disciplina.
 
 ---
 
-## 📋 Descrição
+## 2. Como foi o prompt que o grupo usou para obrigar a IA a refatorar o código para o padrão estruturado com vetores fixos?
 
-O **AutoCenter Rota 381** é um sistema de linha de comando (console) que permite gerenciar as operações de uma oficina mecânica: cadastro de mecânicos, veículos e peças, abertura de ordens de serviço, controle de estoque e geração de relatórios financeiros.
+O grupo utilizou o seguinte prompt para forçar a IA a respeitar as restrições técnicas da disciplina:
+
+> *"Refaça o código usando APENAS vetores de tamanho fixo (ex: `Mecanico[] mecanicos = new Mecanico[100]`), laços `for` e `while` tradicionais, e classes simples sem métodos. É estritamente proibido usar ArrayList, List, HashMap, java.util.*, Orientação a Objetos avançada ou banco de dados. O sistema deve ser 100% estruturado e modularizado em arquivos .java separados, cada um com uma responsabilidade."*
+
+Com esse prompt, a IA passou a gerar o código dentro dos padrões exigidos, utilizando:
+- Vetores fixos com tamanho `MAX = 100`
+- Contadores inteiros (`totalMecanicos`, `totalVeiculos`, etc.)
+- Laços `for` para busca e validação
+- Classes simples apenas com atributos (`public class Mecanico`, `public class Peca`, etc.)
 
 ---
 
-## 🗂️ Estrutura do Projeto
+## 3. Qual regra de negócio a IA se enrolou para fazer e o grupo precisou arrumar ou debugar manualmente?
+
+### Problema: Atualização do estoque após abertura de OS
+
+A regra de negócio mais difícil foi a **validação e desconto automático do estoque ao abrir uma Ordem de Serviço**. A IA gerou o código de forma incorreta em dois pontos:
+
+**Problema 1 — Passagem de parâmetros:**  
+A IA passou o total de peças como `int` simples para os métodos dos módulos. Como Java passa inteiros por valor (não por referência), as alterações feitas dentro do método não refletiam no vetor original. O grupo precisou refatorar para usar `int[]` (vetor de tamanho 1) para simular passagem por referência:
+
+```java
+// Errado (gerado pela IA inicialmente)
+static void reporEstoque(Scanner sc, Peca[] pecas, int totalPecas)
+
+// Corrigido pelo grupo
+static void reporEstoque(Scanner sc, Peca[] pecas, int[] totalPecas)
+```
+
+**Problema 2 — Salvamento do arquivo CSV:**  
+Após o desconto do estoque na OS, o arquivo `pecas.csv` não era atualizado corretamente porque o método `salvarPecas` estava sendo chamado com o valor antigo do total. O grupo identificou o bug e corrigiu a chamada para passar `totalPecas[0]` em vez de `totalPecas`.
+
+Essas correções foram feitas manualmente pelo grupo após testes práticos no Eclipse, sem auxílio da IA.
+
+---
+
+## 📁 Estrutura do Projeto
 
 ```
 autocenter/
-│
-├── Dados.java            # Classes de dados (entidades do sistema)
-├── AutoCenter.java       # Classe principal – menu e coordenação
-├── Arquivos.java         # Leitura e gravação dos arquivos CSV
-├── Cadastros.java        # Cadastro de mecânicos, veículos e peças
-├── OrdemDeServico.java   # Abertura e gestão das ordens de serviço
-├── Relatorios.java       # Relatórios e alertas de estoque
-│
-├── mecanicos.csv         # Gerado automaticamente pelo sistema
-├── veiculos.csv          # Gerado automaticamente pelo sistema
-├── pecas.csv             # Gerado automaticamente pelo sistema
-└── ordens.csv            # Gerado automaticamente pelo sistema
+├── AutoCenter.java       → Menu principal e coordenação dos módulos
+├── Mecanico.java         → Estrutura de dados do Mecânico
+├── Veiculo.java          → Estrutura de dados do Veículo
+├── Peca.java             → Estrutura de dados da Peça
+├── OrdemServico.java     → Estrutura de dados da Ordem de Serviço
+├── Cadastros.java        → Módulo de cadastros e reposição de estoque
+├── OrdemDeServico.java   → Módulo de abertura de OS
+├── Relatorios.java       → Módulo de relatórios e alerta de estoque
+└── Arquivos.java         → Módulo de persistência em arquivos CSV
 ```
 
 ---
 
-## 🧩 Módulos
+## ✅ Funcionalidades Implementadas
 
-### `Dados.java`
-Define as **entidades (structs)** utilizadas pelo sistema:
-
-| Classe | Campos |
-|---|---|
-| `Mecanico` | `codigo`, `nome`, `especialidade` |
-| `Veiculo` | `placa`, `nomeDono`, `modelo` |
-| `Peca` | `codigo`, `descricao`, `quantidade`, `precoUnitario` |
-| `OrdemServico` | `numero`, `placaVeiculo`, `codigoMecanico`, `codigoPeca`, `quantidadePeca`, `valorMaoDeObra` |
-
----
-
-### `AutoCenter.java`
-Classe principal com o **menu interativo** no console. Responsável por:
-- Carregar todos os dados do disco na inicialização
-- Exibir alerta automático de estoque baixo a cada loop
-- Coordenar a chamada dos demais módulos
-
----
-
-### `Arquivos.java`
-Gerencia a **persistência dos dados** em arquivos `.csv`:
-- `salvar*` → grava o array em disco após cada alteração
-- `carregar*` → lê o arquivo CSV e popula o array ao iniciar o sistema
-- Arquivos gerados automaticamente; a ausência deles na primeira execução é tratada sem erro
-
----
-
-### `Cadastros.java`
-Contém os métodos de **cadastro e manutenção**:
-- `cadastrarMecanico` – valida código duplicado antes de inserir
-- `cadastrarVeiculo` – valida placa duplicada antes de inserir
-- `cadastrarPeca` – valida código duplicado antes de inserir
-- `reporEstoque` – localiza uma peça pelo código e incrementa o estoque
-
----
-
-### `OrdemDeServico.java`
-Gerencia a **abertura de uma OS**:
-- Valida existência do veículo, mecânico e peça informados
-- Verifica se há estoque suficiente para atender a OS
-- Desconta automaticamente a quantidade do estoque ao salvar
-- Exibe resumo com mão de obra, valor de peças e total geral
-
----
-
-### `Relatorios.java`
-Gera **três relatórios** e um alerta automático:
-
-| # | Relatório | Descrição |
-|---|---|---|
-| 1 | Comissão da Equipe | Total de mão de obra por mecânico |
-| 2 | Inventário Crítico | Peças com estoque zerado |
-| 3 | Faturamento de Peças | Total faturado em peças por OS |
-| — | Alerta de Estoque Baixo | Exibido automaticamente quando `quantidade ≤ 3` |
-
----
-
-## ▶️ Como Executar
-
-### Pré-requisitos
-- Java JDK 8 ou superior instalado
-- Terminal / Prompt de Comando
-
-### Compilação
-
-```bash
-javac *.java
-```
-
-### Execução
-
-```bash
-java AutoCenter
-```
-
-> Os arquivos CSV são criados automaticamente na mesma pasta na primeira vez que dados são salvos.
-
----
-
-## 💾 Persistência de Dados
-
-Os dados são salvos em arquivos CSV separados por ponto e vírgula (`;`). Exemplo do formato de `ordens.csv`:
-
-```
-1;ABC1234;101;201;2;150.00
-2;DEF5678;102;203;1;200.00
-```
-
-Cada arquivo é **regravado por completo** após qualquer alteração, garantindo consistência.
-
----
-
-## ✅ Funcionalidades
-
-- [x] Cadastro de mecânicos com validação de código duplicado
-- [x] Cadastro de veículos com validação de placa duplicada
-- [x] Cadastro de peças com validação de código duplicado
-- [x] Reposição de estoque
-- [x] Abertura de Ordem de Serviço com desconto automático de estoque
-- [x] Alerta visual de estoque baixo (≤ 3 unidades) no menu principal
-- [x] Relatório de comissão por mecânico
-- [x] Relatório de inventário crítico (estoque zerado)
-- [x] Relatório de faturamento de peças
-- [x] Persistência total em arquivos CSV
-
----
-
-## 🛠️ Tecnologias Utilizadas
-
-- **Java** (sem frameworks externos)
-- **CSV** para persistência de dados
-- **Console / Terminal** como interface do usuário
-
----
-
-## 👨‍💻 Autores
-
-Desenvolvido como projeto acadêmico de sistema de gestão para oficina mecânica.
-
-- Alice Alberti Silva
-- Bianca Paiva Faria
-- Denisson Martins
-- Gabriel Figueiredo Bueno
+- Cadastro de Mecânicos, Veículos e Peças
+- Abertura de Ordem de Serviço com validação de estoque
+- Desconto automático de estoque ao abrir OS
+- Persistência de dados em arquivos `.csv`
+- Relatório de Comissão da Equipe
+- Relatório de Inventário Crítico (peças zeradas)
+- Relatório de Faturamento de Peças
+- **Diferencial:** Reposição de estoque de peças (opção 6 do menu)
